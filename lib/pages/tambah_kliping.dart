@@ -52,7 +52,7 @@ class _TambahKlipingPageState extends State<TambahKlipingPage> {
 
     // === GANTI 192.168.X.X DENGAN IP LAPTOP ANDA ===
     // Jika pakai Emulator Android Studio, ganti jadi: 10.0.2.2
-    var uri = Uri.parse("http://192.168.100.1/api_ekliping/simpan_kliping.php");
+    var uri = Uri.parse("http://127.0.0.1/api_ekliping/simpan_kliping.php");
 
     var request = http.MultipartRequest("POST", uri);
     request.fields['judul'] = _judulController.text;
