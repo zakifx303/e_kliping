@@ -6,6 +6,7 @@ import 'tambah_kliping.dart';
 import 'analitik_page.dart';
 import 'search_page.dart';
 import 'settings_page.dart';
+import 'detail_page.dart'; // <-- Import halaman detail baru
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -19,7 +20,7 @@ class _HomePageState extends State<HomePage> {
 
   // Daftar halaman yang akan dipanggil berdasarkan tab
   final List<Widget> _pages = [
-    const HomeContent(), // Sekarang HomeContent akan menampilkan data dari database
+    const HomeContent(),
     const TambahKlipingPage(),
     const AnalitikPage(),
   ];
@@ -129,7 +130,7 @@ class _HomePageState extends State<HomePage> {
 }
 
 // ==========================================
-// Widget Tampilan Beranda yang Mengambil Data
+// Widget Tampilan Beranda (Menampilkan List Card)
 // ==========================================
 class HomeContent extends StatefulWidget {
   const HomeContent({super.key});
@@ -141,15 +142,12 @@ class HomeContent extends StatefulWidget {
 class _HomeContentState extends State<HomeContent> {
   // Fungsi untuk memanggil API ambil_kliping.php
   Future<List<dynamic>> _fetchKliping() async {
-    // Karena Anda mengetes di Windows Desktop, gunakan 127.0.0.1
     final response = await http.get(
       Uri.parse("http://127.0.0.1/api_ekliping/ambil_kliping.php"),
     );
 
     if (response.statusCode == 200) {
-      return jsonDecode(
-        response.body,
-      ); // Menerjemahkan JSON ke bentuk list Dart
+      return jsonDecode(response.body);
     } else {
       throw Exception("Gagal memuat data kliping");
     }
@@ -164,17 +162,14 @@ class _HomeContentState extends State<HomeContent> {
       child: FutureBuilder<List<dynamic>>(
         future: _fetchKliping(),
         builder: (context, snapshot) {
-          // 1. Kondisi saat sedang memuat data (Loading)
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          // 2. Kondisi jika terjadi error jaringan / URL salah
           if (snapshot.hasError) {
             return Center(child: Text("Error: ${snapshot.error}"));
           }
 
-          // 3. Kondisi jika database masih kosong (Kembali tampilkan wajah sedih)
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return const Center(
               child: Column(
@@ -191,7 +186,6 @@ class _HomeContentState extends State<HomeContent> {
             );
           }
 
-          // 4. Jika data tersedia, tampilkan dalam bentuk ListView Card
           final listKliping = snapshot.data!;
           return ListView.builder(
             padding: const EdgeInsets.all(12),
@@ -200,108 +194,118 @@ class _HomeContentState extends State<HomeContent> {
               final item = listKliping[index];
               final String? namaGambar = item['gambar'];
 
-              // Membuat URL gambar untuk dipanggil dari folder uploads
               final String urlGambar =
                   (namaGambar != null && namaGambar.isNotEmpty)
                   ? "http://127.0.0.1/api_ekliping/uploads/$namaGambar"
                   : "";
 
-              return Card(
-                margin: const EdgeInsets.only(bottom: 16),
-                elevation: 2,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  side: BorderSide(color: Colors.grey.shade300),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // --- Menampilkan gambar berita (jika ada) ---
-                      if (urlGambar.isNotEmpty)
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.network(
-                            urlGambar,
-                            height: 180,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                            // Jika gambar gagal dimuat (misal terhapus manual dari folder uploads)
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
-                                height: 120,
-                                color: Colors.grey.shade200,
-                                child: const Center(
-                                  child: Icon(
-                                    Icons.broken_image,
-                                    size: 40,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      if (urlGambar.isNotEmpty) const SizedBox(height: 12),
+              // Bungkusan GestureDetector agar Card bisa diklik
+              return GestureDetector(
+                onTap: () async {
+                  // Membuka halaman DetailPage
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => DetailPage(data: item),
+                    ),
+                  );
 
-                      // --- Menampilkan Kategori & Sumber ---
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
+                  // Jika halaman detail mengirim sinyal 'true' (tanda berita dihapus), muat ulang Home
+                  if (result == true) {
+                    setState(() {});
+                  }
+                },
+                child: Card(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    side: BorderSide(color: Colors.grey.shade300),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (urlGambar.isNotEmpty)
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.network(
+                              urlGambar,
+                              height: 180,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  height: 120,
+                                  color: Colors.grey.shade200,
+                                  child: const Center(
+                                    child: Icon(
+                                      Icons.broken_image,
+                                      size: 40,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                );
+                              },
                             ),
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade200,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              item['kategori'] ?? 'Umum',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black87,
+                          ),
+                        if (urlGambar.isNotEmpty) const SizedBox(height: 12),
+
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade200,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                item['kategori'] ?? 'Umum',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                ),
                               ),
                             ),
+                            Text(
+                              item['sumber'] ?? '',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+
+                        Text(
+                          item['judul'] ?? '',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
                           ),
+                        ),
+                        const SizedBox(height: 6),
+
+                        if (item['deskripsi'] != null &&
+                            item['deskripsi'].toString().isNotEmpty)
                           Text(
-                            item['sumber'] ?? '',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey,
+                            item['deskripsi'],
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey.shade800,
                             ),
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-
-                      // --- Menampilkan Judul Berita ---
-                      Text(
-                        item['judul'] ?? '',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-
-                      // --- Menampilkan Deskripsi Berita ---
-                      if (item['deskripsi'] != null &&
-                          item['deskripsi'].toString().isNotEmpty)
-                        Text(
-                          item['deskripsi'],
-                          maxLines: 3, // Maksimal 3 baris
-                          overflow: TextOverflow
-                              .ellipsis, // Jika panjang akan diberi titik-titik (...)
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey.shade800,
-                          ),
-                        ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               );

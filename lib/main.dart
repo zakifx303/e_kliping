@@ -1,6 +1,6 @@
 // Lokasi: lib/main.dart
 import 'package:flutter/material.dart';
-import 'pages/home_page.dart';
+import 'pages/login_page.dart';
 
 // SAKELAR GLOBAL: Menyimpan status mode gelap (default: false / terang)
 final ValueNotifier<bool> isDarkModeNotifier = ValueNotifier(false);
@@ -49,7 +49,7 @@ class MyApp extends StatelessWidget {
               surfaceTintColor: Color(0xFF121212),
             ),
           ),
-          home: const HomePage(),
+          home: const LoginPage(),
         );
       },
     );
