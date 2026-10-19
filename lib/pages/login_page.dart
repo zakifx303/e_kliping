@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'home_page.dart';
+import '../session.dart'; // Mengimpor kelas UserSession untuk menyimpan username saat login
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -50,6 +51,8 @@ class _LoginPageState extends State<LoginPage> {
 
         if (data['status'] == 'sukses') {
           // Jika sukses, berpindah ke HomePage dan tutup halaman Login
+          UserSession.currentUsername =
+              username; // Simpan username ke UserSession
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(

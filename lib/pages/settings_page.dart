@@ -1,60 +1,112 @@
 // Lokasi: lib/pages/settings_page.dart
 import 'package:flutter/material.dart';
-import '../main.dart'; // Mengimpor sakelar global dari main.dart
+import '../session.dart';
+import 'tambah_user_page.dart';
 
-class SettingsPage extends StatelessWidget {
+class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
+
+  @override
+  State<SettingsPage> createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends State<SettingsPage> {
+  bool _isDarkMode = false;
+
+  // Fungsi untuk mengecek hak akses Admin
+  void _cekAdminDanArahkan() {
+    if (UserSession.currentUsername == 'admin') {
+      // Jika admin, izinkan masuk ke halaman Tambah User
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const TambahUserPage()),
+      );
+    } else {
+      // Jika bukan admin, munculkan pop-up penolakan
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          title: const Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
+              SizedBox(width: 8),
+              Text('Akses Ditolak'),
+            ],
+          ),
+          content: const Text('Maaf, anda bukan admin.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Tutup', style: TextStyle(color: Colors.black)),
+            ),
+          ],
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
+        backgroundColor: Colors.white,
         elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.black),
+        title: const Text(
+          'SETTINGS',
+          style: TextStyle(color: Colors.black, fontSize: 18),
+        ),
         centerTitle: true,
-        title: const Text('SETTINGS', style: TextStyle(fontSize: 16)),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1.0),
-          child: Container(color: Colors.grey.shade400, height: 1.0),
+          child: Container(color: Colors.grey.shade300, height: 1.0),
         ),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
           children: [
-            // Ikon penanda mode (warna kuning/amber agar mirip gambar)
-            const Icon(
-              Icons.brightness_6_outlined,
-              color: Colors.amber,
-              size: 28,
-            ),
-            const SizedBox(width: 12),
-
-            // Teks Mode Gelap dengan garis bawah
-            const Expanded(
-              child: Text(
-                'MODE GELAP',
-                style: TextStyle(
-                  fontSize: 16,
-                  decoration: TextDecoration.underline,
+            // Opsi 1: Mode Gelap (Desain sesuai Wireframe)
+            Row(
+              children: [
+                const Icon(Icons.brightness_6, color: Colors.amber, size: 32),
+                const SizedBox(width: 16),
+                const Expanded(
+                  child: Text(
+                    'MODE GELAP',
+                    style: TextStyle(
+                      fontSize: 16,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
                 ),
-              ),
-            ),
-
-            // Tombol Switch yang terhubung dengan sakelar global
-            ValueListenableBuilder<bool>(
-              valueListenable: isDarkModeNotifier,
-              builder: (context, isDark, child) {
-                return Switch(
-                  value: isDark,
-                  onChanged: (value) {
-                    isDarkModeNotifier.value =
-                        value; // Mengubah tema seluruh aplikasi
+                Switch(
+                  value: _isDarkMode,
+                  onChanged: (val) {
+                    setState(() {
+                      _isDarkMode = val;
+                    });
                   },
-                  activeColor: Colors.black, // Warna bulatan saat aktif
-                  activeTrackColor:
-                      Colors.grey.shade400, // Warna jalur saat aktif
-                );
-              },
+                  activeColor: Colors.black,
+                ),
+              ],
+            ),
+            const SizedBox(height: 32),
+
+            // Opsi 2: Tambah User
+            InkWell(
+              onTap: _cekAdminDanArahkan,
+              child: const Row(
+                children: [
+                  Icon(Icons.person_add, size: 36, color: Colors.black),
+                  SizedBox(width: 16),
+                  Text('Tambah User', style: TextStyle(fontSize: 16)),
+                ],
+              ),
             ),
           ],
         ),
