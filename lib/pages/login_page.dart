@@ -105,10 +105,11 @@ class _LoginPageState extends State<LoginPage> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 // Logo atau Icon Kemenag (Placeholder)
-                Icon(
-                  Icons.shield_outlined,
-                  size: 100,
-                  color: Colors.green.shade700,
+                Image.asset(
+                  'assets/images/Kementerian_Agama_new_logo.png',
+                  width: 100,
+                  height: 100,
+                  fit: BoxFit.contain,
                 ),
                 const SizedBox(height: 24),
 
