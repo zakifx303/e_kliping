@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -11,36 +12,57 @@ class TambahKlipingPage extends StatefulWidget {
 }
 
 class _TambahKlipingPageState extends State<TambahKlipingPage> {
-  // Pengontrol untuk mengambil teks dari TextField
   final TextEditingController _judulController = TextEditingController();
   final TextEditingController _sumberController = TextEditingController();
   final TextEditingController _deskripsiController = TextEditingController();
 
-  String? _kategoriTerpilih;
-  File? _gambarKliping;
+  String? _selectedKategori;
+  String? _selectedSentimen; // Variabel penampung sentimen
+  File? _image;
   bool _isLoading = false;
 
-  // Fungsi untuk membuka galeri dan memilih gambar
-  Future<void> _pilihGambar() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+  // Daftar Pilihan Dropdown
+  final List<String> _kategoriList = [
+    'Berita Agama',
+    'Pendidikan',
+    'Haji & Umrah',
+    'Umum',
+    'Prestasi',
+    'lainnya',
+  ];
+  final List<String> _sentimenList = ['Positif', 'Netral', 'Negatif'];
 
+  // Fungsi Pemilih Gambar
+  Future<void> _pickImage() async {
+    final pickedFile = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+    );
     if (pickedFile != null) {
       setState(() {
-        _gambarKliping = File(pickedFile.path);
+        _image = File(pickedFile.path);
       });
     }
   }
 
-  // Fungsi untuk mengirim data ke Database (PHP)
+  // Fungsi Mengosongkan Form (Tombol Batal)
+  void _batal() {
+    setState(() {
+      _judulController.clear();
+      _sumberController.clear();
+      _deskripsiController.clear();
+      _selectedKategori = null;
+      _selectedSentimen = null;
+      _image = null;
+    });
+  }
+
+  // Fungsi Menyimpan Data ke Database
   Future<void> _simpanData() async {
-    // Validasi form kosong
-    if (_judulController.text.isEmpty ||
-        _sumberController.text.isEmpty ||
-        _kategoriTerpilih == null) {
+    if (_judulController.text.isEmpty || _sumberController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Judul, Sumber, dan Kategori harus diisi!'),
+          content: Text('Judul dan Sumber berita wajib diisi!'),
+          backgroundColor: Colors.red,
         ),
       );
       return;
@@ -50,213 +72,229 @@ class _TambahKlipingPageState extends State<TambahKlipingPage> {
       _isLoading = true;
     });
 
-    // === GANTI 192.168.X.X DENGAN IP LAPTOP ANDA ===
-    // Jika pakai Emulator Android Studio, ganti jadi: 10.0.2.2
     var uri = Uri.parse("http://127.0.0.1/api_ekliping/simpan_kliping.php");
-
     var request = http.MultipartRequest("POST", uri);
+
     request.fields['judul'] = _judulController.text;
     request.fields['sumber'] = _sumberController.text;
-    request.fields['kategori'] = _kategoriTerpilih!;
+    request.fields['kategori'] = _selectedKategori ?? 'Umum';
+    request.fields['sentimen'] =
+        _selectedSentimen ?? 'Netral'; // Pengiriman Data Sentimen
     request.fields['deskripsi'] = _deskripsiController.text;
 
-    // Jika ada gambar yang dipilih, masukkan ke paket pengiriman
-    if (_gambarKliping != null) {
-      var pic = await http.MultipartFile.fromPath(
-        'gambar',
-        _gambarKliping!.path,
+    if (_image != null) {
+      request.files.add(
+        await http.MultipartFile.fromPath('gambar', _image!.path),
       );
-      request.files.add(pic);
     }
 
     try {
       var response = await request.send();
       if (response.statusCode == 200) {
-        // Jika berhasil
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Berhasil menyimpan kliping!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        // Bersihkan form setelah sukses
-        _judulController.clear();
-        _sumberController.clear();
-        _deskripsiController.clear();
-        setState(() {
-          _kategoriTerpilih = null;
-          _gambarKliping = null;
-        });
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Gagal menyimpan data'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        var responseData = await response.stream.bytesToString();
+        var data = jsonDecode(responseData);
+
+        if (data['status'] == 'sukses') {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(data['pesan']),
+                backgroundColor: Colors.green,
+              ),
+            );
+            _batal(); // Kosongkan form setelah sukses
+          }
+        }
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error jaringan: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
-
-    setState(() {
-      _isLoading = false;
-    });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white,
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            TextField(
-              controller: _judulController,
-              decoration: const InputDecoration(
-                hintText: 'Judul Berita',
-                border: OutlineInputBorder(),
-              ),
-            ),
+            // Input Judul
+            _buildTextField(controller: _judulController, hint: 'Judul Berita'),
             const SizedBox(height: 16),
 
-            TextField(
+            // Input Sumber
+            _buildTextField(
               controller: _sumberController,
-              decoration: const InputDecoration(
-                hintText: 'Sumber berita',
-                border: OutlineInputBorder(),
-              ),
+              hint: 'Sumber berita',
             ),
             const SizedBox(height: 16),
 
-            // Dropdown Kategori yang berfungsi
-            DropdownButtonFormField<String>(
-              value: _kategoriTerpilih,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(horizontal: 12),
-              ),
-              hint: const Text('Pilih kategori'),
-              items: ['Haji & Umrah', 'Madrasah', 'Kerukunan Umat', 'Lainnya']
-                  .map(
-                    (kategori) => DropdownMenuItem(
-                      value: kategori,
-                      child: Text(kategori),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (value) {
-                setState(() {
-                  _kategoriTerpilih = value;
-                });
-              },
+            // Dropdown Kategori
+            _buildDropdown(
+              hint: 'Pilih kategori',
+              value: _selectedKategori,
+              items: _kategoriList,
+              onChanged: (val) => setState(() => _selectedKategori = val),
             ),
             const SizedBox(height: 16),
 
-            TextField(
+            // Dropdown Sentimen (BARU)
+            _buildDropdown(
+              hint: 'Pilih sentimen',
+              value: _selectedSentimen,
+              items: _sentimenList,
+              onChanged: (val) => setState(() => _selectedSentimen = val),
+            ),
+            const SizedBox(height: 16),
+
+            // Text Area Deskripsi
+            _buildTextField(
               controller: _deskripsiController,
+              hint: 'Deskripsi...',
               maxLines: 4,
-              decoration: const InputDecoration(
-                hintText: 'Deskripsi...',
-                border: OutlineInputBorder(),
-              ),
             ),
-            const SizedBox(height: 16),
-
-            const Text(
-              'Upload file (opsional)',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-            ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 24),
 
             // Kotak Upload File
-            GestureDetector(
-              onTap: _pilihGambar, // Buka galeri saat diklik
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 24),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade200,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.black45),
-                ),
-                child: Column(
-                  children: [
-                    Icon(
-                      _gambarKliping == null
-                          ? Icons.upload_file
-                          : Icons.check_circle,
-                      size: 32,
-                      color: _gambarKliping == null
-                          ? Colors.black
-                          : Colors.green,
+            const Text(
+              'Upload file (opsional)',
+              style: TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade200,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.black87, width: 1.5),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.upload_file, size: 32),
+                  const SizedBox(width: 16),
+                  ElevatedButton(
+                    onPressed: _pickImage,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.grey.shade300,
+                      foregroundColor: Colors.black,
+                      elevation: 0,
+                      side: const BorderSide(color: Colors.black87),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      _gambarKliping == null
-                          ? 'Klik untuk pilih file'
-                          : 'File dipilih!',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    child: Text(
+                      _image == null ? 'Pilih file' : 'File Terpilih!',
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 32),
 
             // Tombol Simpan & Batal
             Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                ElevatedButton(
-                  onPressed: _isLoading
-                      ? null
-                      : _simpanData, // Matikan tombol saat loading
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black87,
-                    foregroundColor: Colors.white,
-                    minimumSize: const Size(110, 45),
-                  ),
-                  child: _isLoading
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(color: Colors.white),
-                        )
-                      : const Text('Simpan'),
-                ),
-                const SizedBox(width: 24),
-                OutlinedButton(
-                  onPressed: () {
-                    // Logika batal (bersihkan form)
-                    _judulController.clear();
-                    _sumberController.clear();
-                    _deskripsiController.clear();
-                    setState(() {
-                      _kategoriTerpilih = null;
-                      _gambarKliping = null;
-                    });
-                  },
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size(110, 45),
-                  ),
-                  child: const Text(
-                    'Batal',
-                    style: TextStyle(color: Colors.black),
-                  ),
-                ),
+                _buildActionBtn('Simpan', _isLoading ? null : _simpanData),
+                _buildActionBtn('Batal', _batal),
               ],
             ),
           ],
         ),
       ),
+    );
+  }
+
+  // --- Widget Kustom untuk meniru gaya Wireframe ---
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String hint,
+    int maxLines = 1,
+  }) {
+    return TextField(
+      controller: controller,
+      maxLines: maxLines,
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: const TextStyle(color: Colors.grey),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Colors.black87, width: 1.5),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Colors.black87, width: 1.5),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDropdown({
+    required String hint,
+    required String? value,
+    required List<String> items,
+    required ValueChanged<String?> onChanged,
+  }) {
+    return DropdownButtonFormField<String>(
+      decoration: InputDecoration(
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Colors.black87, width: 1.5),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Colors.black87, width: 1.5),
+        ),
+      ),
+      hint: Text(hint, style: const TextStyle(color: Colors.grey)),
+      value: value,
+      icon: Container(
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: Colors.black,
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: const Icon(Icons.arrow_drop_down, color: Colors.white),
+      ),
+      items: items
+          .map((item) => DropdownMenuItem(value: item, child: Text(item)))
+          .toList(),
+      onChanged: onChanged,
+    );
+  }
+
+  Widget _buildActionBtn(String text, VoidCallback? onPressed) {
+    return ElevatedButton(
+      onPressed: onPressed,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.grey.shade300,
+        foregroundColor: Colors.black,
+        elevation: 0,
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+        side: const BorderSide(color: Colors.black87, width: 1.5),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      ),
+      child: Text(text, style: const TextStyle(fontWeight: FontWeight.bold)),
     );
   }
 }
