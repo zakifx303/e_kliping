@@ -117,9 +117,9 @@ class _TambahUserPageState extends State<TambahUserPage> {
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    spreadRadius: 2,
-                    blurRadius: 10,
+                    color: Colors.black.withOpacity(0.5),
+                    spreadRadius: 4,
+                    blurRadius: 5,
                     offset: const Offset(0, 4),
                   ),
                 ],
