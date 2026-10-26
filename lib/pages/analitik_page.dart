@@ -29,7 +29,7 @@ class _AnalitikPageState extends State<AnalitikPage> {
       _isLoading = true;
     });
 
-    String url = "http://127.0.0.1/api_ekliping/api_analitik.php";
+    String url = "http://192.168.100.106/api_ekliping/api_analitik.php";
     if (_startDate != null && _endDate != null) {
       String dari = DateFormat('yyyy-MM-dd').format(_startDate!);
       String sampai = DateFormat('yyyy-MM-dd').format(_endDate!);

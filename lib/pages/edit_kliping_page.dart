@@ -195,7 +195,7 @@ class _EditKlipingPageState extends State<EditKlipingPage> {
       _isLoading = true;
     });
 
-    var uri = Uri.parse("http://127.0.0.1/api_ekliping/edit_kliping.php");
+    var uri = Uri.parse("http://192.168.100.106/api_ekliping/edit_kliping.php");
     var request = http.MultipartRequest("POST", uri);
 
     request.fields['id'] = _dataSementara['id'].toString();
@@ -243,7 +243,7 @@ class _EditKlipingPageState extends State<EditKlipingPage> {
     String urlGambarLama =
         (_dataSementara['gambar'] != null &&
             _dataSementara['gambar'].toString().isNotEmpty)
-        ? "http://127.0.0.1/api_ekliping/uploads/${_dataSementara['gambar']}"
+        ? "http://192.168.100.106/api_ekliping/uploads/${_dataSementara['gambar']}"
         : "";
 
     return Scaffold(

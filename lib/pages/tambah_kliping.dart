@@ -73,7 +73,9 @@ class _TambahKlipingPageState extends State<TambahKlipingPage> {
       _isLoading = true;
     });
 
-    var uri = Uri.parse("http://127.0.0.1/api_ekliping/simpan_kliping.php");
+    var uri = Uri.parse(
+      "http://192.168.100.106/api_ekliping/simpan_kliping.php",
+    );
     var request = http.MultipartRequest("POST", uri);
 
     request.fields['username'] = UserSession.currentUsername;

@@ -37,7 +37,9 @@ class _UbahPasswordPageState extends State<UbahPasswordPage> {
       _isLoading = true;
     });
 
-    var uri = Uri.parse("http://127.0.0.1/api_ekliping/ubah_password.php");
+    var uri = Uri.parse(
+      "http://192.168.100.106/api_ekliping/ubah_password.php",
+    );
     var request = http.MultipartRequest("POST", uri);
     request.fields['username'] = _usernameController.text;
     request.fields['password_baru'] = _passwordBaruController.text;

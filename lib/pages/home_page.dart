@@ -158,7 +158,7 @@ class HomeContent extends StatefulWidget {
 class _HomeContentState extends State<HomeContent> {
   Future<List<dynamic>> _fetchKliping() async {
     final response = await http.get(
-      Uri.parse("http://127.0.0.1/api_ekliping/ambil_kliping.php"),
+      Uri.parse("http://192.168.100.106/api_ekliping/ambil_kliping.php"),
     );
 
     if (response.statusCode == 200) {
@@ -231,7 +231,7 @@ class _HomeContentState extends State<HomeContent> {
                 final String? namaGambar = item['gambar'];
                 final String urlGambar =
                     (namaGambar != null && namaGambar.isNotEmpty)
-                    ? "http://127.0.0.1/api_ekliping/uploads/$namaGambar"
+                    ? "http://192.168.100.106/api_ekliping/uploads/$namaGambar"
                     : "";
 
                 // 2. Tentukan Warna Pita berdasarkan Sentimen

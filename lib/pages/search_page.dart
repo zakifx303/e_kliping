@@ -20,7 +20,7 @@ class _SearchPageState extends State<SearchPage> {
 
     final response = await http.get(
       Uri.parse(
-        "http://127.0.0.1/api_ekliping/cari_kliping.php?keyword=$keyword",
+        "http://192.168.100.106/api_ekliping/cari_kliping.php?keyword=$keyword",
       ),
     );
 
@@ -162,7 +162,7 @@ class _SearchPageState extends State<SearchPage> {
                             final String? namaGambar = item['gambar'];
                             final String urlGambar =
                                 (namaGambar != null && namaGambar.isNotEmpty)
-                                ? "http://127.0.0.1/api_ekliping/uploads/$namaGambar"
+                                ? "http://192.168.100.106/api_ekliping/uploads/$namaGambar"
                                 : "";
 
                             return Card(

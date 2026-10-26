@@ -33,7 +33,9 @@ class _TambahUserPageState extends State<TambahUserPage> {
       _isLoading = true;
     });
 
-    var uri = Uri.parse("http://127.0.0.1/api_ekliping/api_tambah_user.php");
+    var uri = Uri.parse(
+      "http://192.168.100.106/api_ekliping/api_tambah_user.php",
+    );
     var request = http.MultipartRequest("POST", uri);
     request.fields['nama_lengkap'] = _namaController.text;
     request.fields['username'] = _usernameController.text;

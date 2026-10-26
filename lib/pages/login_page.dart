@@ -38,7 +38,7 @@ class _LoginPageState extends State<LoginPage> {
       _isLoading = true; // Nyalakan loading
     });
 
-    var uri = Uri.parse("http://127.0.0.1/api_ekliping/login.php");
+    var uri = Uri.parse("http://192.168.100.106/api_ekliping/login.php");
     var request = http.MultipartRequest("POST", uri);
     request.fields['username'] = username;
     request.fields['password'] = password;
