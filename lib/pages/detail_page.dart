@@ -37,7 +37,7 @@ class _DetailPageState extends State<DetailPage> {
     // Cek Gambar
     final String? namaGambar = widget.data['gambar'];
     final String urlGambar = (namaGambar != null && namaGambar.isNotEmpty)
-        ? "http://192.168.100.106/api_ekliping/uploads/$namaGambar"
+        ? "http://127.0.0.1/api_ekliping/uploads/$namaGambar"
         : "";
 
     return Scaffold(
