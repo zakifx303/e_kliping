@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
+import '../session.dart';
 
 class TambahKlipingPage extends StatefulWidget {
   const TambahKlipingPage({super.key});
@@ -75,6 +76,7 @@ class _TambahKlipingPageState extends State<TambahKlipingPage> {
     var uri = Uri.parse("http://127.0.0.1/api_ekliping/simpan_kliping.php");
     var request = http.MultipartRequest("POST", uri);
 
+    request.fields['username'] = UserSession.currentUsername;
     request.fields['judul'] = _judulController.text;
     request.fields['sumber'] = _sumberController.text;
     request.fields['kategori'] = _selectedKategori ?? 'Umum';

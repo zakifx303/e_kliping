@@ -213,7 +213,20 @@ class _HomeContentState extends State<HomeContent> {
               itemCount: listKliping.length,
               itemBuilder: (context, index) {
                 final item = listKliping[index];
+                // [Di dalam ListView.builder home_page.dart]
 
+                // Tentukan apakah ada tanggal edit (updated_at)
+                String rawUpdateDate = item['updated_at'] ?? '';
+                String displayUpdateDate = '';
+                if (rawUpdateDate.isNotEmpty && rawUpdateDate != 'null') {
+                  List<String> parts = rawUpdateDate
+                      .substring(0, 10)
+                      .split('-');
+                  if (parts.length == 3) {
+                    displayUpdateDate =
+                        'diedit: ${parts[2]}/${parts[1]}/${parts[0]}';
+                  }
+                }
                 // 1. Ambil nama gambar
                 final String? namaGambar = item['gambar'];
                 final String urlGambar =
@@ -355,12 +368,26 @@ class _HomeContentState extends State<HomeContent> {
                                       mainAxisAlignment:
                                           MainAxisAlignment.spaceBetween,
                                       children: [
-                                        Text(
-                                          displayDate,
-                                          style: const TextStyle(
-                                            fontSize: 11,
-                                            color: Colors.black87,
-                                          ),
+                                        Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              displayDate,
+                                              style: const TextStyle(
+                                                fontSize: 11,
+                                                color: Colors.black87,
+                                              ),
+                                            ),
+                                            if (displayUpdateDate.isNotEmpty)
+                                              Text(
+                                                displayUpdateDate,
+                                                style: const TextStyle(
+                                                  fontSize: 10,
+                                                  color: Colors.black54,
+                                                ),
+                                              ),
+                                          ],
                                         ),
                                         Text(
                                           'Kategori : ${item['kategori'] ?? ''}',
