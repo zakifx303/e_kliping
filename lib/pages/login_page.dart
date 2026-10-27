@@ -120,7 +120,7 @@ class _LoginPageState extends State<LoginPage> {
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: Colors.black.withOpacity(0.5),
                       blurRadius: 10,
                       offset: const Offset(0, 5),
                     ),
