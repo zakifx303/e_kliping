@@ -2,9 +2,9 @@
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application
-        android:label="flutter_application_1"
+        android:label="Eclips : E-kliping Humas Kemenag Babel"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@mipmap/launcher_icon"
         android:usesCleartextTraffic="true">
         <activity
             android:name=".MainActivity"
