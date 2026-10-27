@@ -7,6 +7,7 @@ import 'analitik_page.dart';
 import 'search_page.dart';
 import 'settings_page.dart';
 import 'detail_page.dart';
+import '../session.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -44,6 +45,15 @@ class _HomePageState extends State<HomePage> {
           showUnselectedLabels: false,
           iconSize: 32,
           onTap: (index) {
+            if (index == 1 && UserSession.currentUsername == 'guest') {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Guest hanya bisa melihat berita.'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+              return;
+            }
             setState(() {
               _selectedIndex = index;
             });

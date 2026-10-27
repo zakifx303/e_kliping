@@ -219,12 +219,22 @@ class _SettingsPageState extends State<SettingsPage> {
             // 3. Ubah Password
             InkWell(
               onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const UbahPasswordPage(),
-                  ),
-                );
+                if (UserSession.currentUsername == 'guest') {
+                  showDialog(
+                    context: context,
+                    builder: (context) => const AlertDialog(
+                      title: Text('Akses Ditolak'),
+                      content: Text('Guest tidak dapat mengubah password.'),
+                    ),
+                  );
+                } else {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const UbahPasswordPage(),
+                    ),
+                  );
+                }
               },
               child: const Row(
                 children: [

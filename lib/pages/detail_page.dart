@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'edit_kliping_page.dart';
+import '../session.dart';
 
 class DetailPage extends StatefulWidget {
   final Map<String, dynamic> data;
@@ -178,82 +179,82 @@ class _DetailPageState extends State<DetailPage> {
       ),
 
       // BOTTOM NAVIGATION: Tombol Edit & Hapus (Mengambang di bawah)
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border(
-            top: BorderSide(color: Colors.grey.shade300, width: 1),
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            // TOMBOL EDIT (HIJAU)
-            Expanded(
-              child: OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(
-                  backgroundColor: const Color(0xFF90EE90), // Hijau terang
-                  foregroundColor: Colors.black,
-                  side: const BorderSide(
-                    color: Colors.green,
-                    width: 2,
-                  ), // Garis tepi tebal
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
+      bottomNavigationBar: UserSession.currentUsername == 'guest'
+          ? const SizedBox.shrink()
+          : Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border(
+                  top: BorderSide(color: Colors.grey.shade300, width: 1),
                 ),
-                icon: const Icon(Icons.edit_outlined),
-                label: const Text(
-                  'Edit',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                onPressed: () async {
-                  // Arahkan ke halaman edit dan tunggu kembalian data terbarunya
-                  final updatedData = await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          EditKlipingPage(dataAwal: widget.data),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  // TOMBOL EDIT (HIJAU)
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        backgroundColor: const Color(0xFF90EE90),
+                        foregroundColor: Colors.black,
+                        side: const BorderSide(color: Colors.green, width: 2),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      icon: const Icon(Icons.edit_outlined),
+                      label: const Text(
+                        'Edit',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      onPressed: () async {
+                        final updatedData = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                EditKlipingPage(dataAwal: widget.data),
+                          ),
+                        );
+
+                        if (updatedData != null) {
+                          Navigator.pop(context, true);
+                        }
+                      },
                     ),
-                  );
-
-                  // Jika berhasil diedit (kembali membawa data), segarkan halaman detail ini
-                  if (updatedData != null) {
-                    Navigator.pop(
-                      context,
-                      true,
-                    ); // Tutup detail, suruh Home refresh
-                  }
-                },
-              ),
-            ),
-            const SizedBox(width: 16),
-
-            // TOMBOL HAPUS (MERAH)
-            Expanded(
-              child: OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFF8A80), // Merah terang
-                  foregroundColor: Colors.black,
-                  side: const BorderSide(color: Colors.red, width: 2),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
                   ),
-                ),
-                icon: const Icon(Icons.delete_outline),
-                label: const Text(
-                  'Hapus',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                onPressed: _isLoading ? null : _hapusKliping,
+                  const SizedBox(width: 16),
+
+                  // TOMBOL HAPUS (MERAH)
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        backgroundColor: const Color(0xFFFF8A80),
+                        foregroundColor: Colors.black,
+                        side: const BorderSide(color: Colors.red, width: 2),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      icon: const Icon(Icons.delete_outline),
+                      label: const Text(
+                        'Hapus',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      onPressed: _isLoading ? null : _hapusKliping,
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
-      ),
     );
   }
 }
