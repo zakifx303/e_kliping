@@ -2,6 +2,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'detail_page.dart';
 
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
@@ -171,48 +172,63 @@ class _SearchPageState extends State<SearchPage> {
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              child: ListTile(
-                                contentPadding: const EdgeInsets.all(8),
-                                leading: urlGambar.isNotEmpty
-                                    ? ClipRRect(
-                                        borderRadius: BorderRadius.circular(6),
-                                        child: Image.network(
-                                          urlGambar,
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(10),
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          DetailPage(data: item),
+                                    ),
+                                  );
+                                },
+                                child: ListTile(
+                                  contentPadding: const EdgeInsets.all(8),
+                                  leading: urlGambar.isNotEmpty
+                                      ? ClipRRect(
+                                          borderRadius: BorderRadius.circular(
+                                            6,
+                                          ),
+                                          child: Image.network(
+                                            urlGambar,
+                                            width: 60,
+                                            height: 60,
+                                            fit: BoxFit.cover,
+                                            errorBuilder:
+                                                (context, error, stackTrace) =>
+                                                    Container(
+                                                      width: 60,
+                                                      height: 60,
+                                                      color:
+                                                          Colors.grey.shade300,
+                                                      child: const Icon(
+                                                        Icons.broken_image,
+                                                      ),
+                                                    ),
+                                          ),
+                                        )
+                                      : Container(
                                           width: 60,
                                           height: 60,
-                                          fit: BoxFit.cover,
-                                          errorBuilder:
-                                              (context, error, stackTrace) =>
-                                                  Container(
-                                                    width: 60,
-                                                    height: 60,
-                                                    color: Colors.grey.shade300,
-                                                    child: const Icon(
-                                                      Icons.broken_image,
-                                                    ),
-                                                  ),
+                                          color: Colors.grey.shade300,
+                                          child: const Icon(
+                                            Icons.article,
+                                            color: Colors.grey,
+                                          ),
                                         ),
-                                      )
-                                    : Container(
-                                        width: 60,
-                                        height: 60,
-                                        color: Colors.grey.shade300,
-                                        child: const Icon(
-                                          Icons.article,
-                                          color: Colors.grey,
-                                        ),
-                                      ),
-                                title: Text(
-                                  item['judul'] ?? '',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
+                                  title: Text(
+                                    item['judul'] ?? '',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
-                                ),
-                                subtitle: Text(
-                                  item['kategori'] ?? '',
-                                  style: const TextStyle(color: Colors.blue),
+                                  subtitle: Text(
+                                    item['kategori'] ?? '',
+                                    style: const TextStyle(color: Colors.blue),
+                                  ),
                                 ),
                               ),
                             );

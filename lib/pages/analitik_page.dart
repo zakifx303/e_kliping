@@ -1,9 +1,9 @@
 // Lokasi: lib/pages/analitik_page.dart
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'dart:convert';
-import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart';
 
 class AnalitikPage extends StatefulWidget {
   const AnalitikPage({super.key});
@@ -16,12 +16,40 @@ class _AnalitikPageState extends State<AnalitikPage> {
   DateTime? _startDate;
   DateTime? _endDate;
   bool _isLoading = false;
-  Map<String, dynamic>? _dataAnalitik;
+
+  // Data default sebelum fetch
+  Map<String, int> _distribusi = {'positif': 0, 'netral': 0, 'negatif': 0};
+  List<dynamic> _tren = [];
+
+  final String baseUrl = "http://192.168.100.106"; // Ganti dengan IP Anda
 
   @override
   void initState() {
     super.initState();
-    _fetchAnalitik(); // Ambil data semua tanggal saat pertama kali dibuka
+    // Secara default, ambil data sebulan terakhir
+    _endDate = DateTime.now();
+    _startDate = _endDate!.subtract(const Duration(days: 30));
+    _fetchAnalitik();
+  }
+
+  Future<void> _pilihTanggal(BuildContext context, bool isStart) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: isStart
+          ? (_startDate ?? DateTime.now())
+          : (_endDate ?? DateTime.now()),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2101),
+    );
+    if (picked != null) {
+      setState(() {
+        if (isStart) {
+          _startDate = picked;
+        } else {
+          _endDate = picked;
+        }
+      });
+    }
   }
 
   Future<void> _fetchAnalitik() async {
@@ -29,22 +57,30 @@ class _AnalitikPageState extends State<AnalitikPage> {
       _isLoading = true;
     });
 
-    String url = "http://192.168.100.106/api_ekliping/api_analitik.php";
+    String url = "$baseUrl/api_ekliping/analitik.php";
     if (_startDate != null && _endDate != null) {
-      String dari = DateFormat('yyyy-MM-dd').format(_startDate!);
-      String sampai = DateFormat('yyyy-MM-dd').format(_endDate!);
-      url += "?dari=$dari&sampai=$sampai";
+      String start = DateFormat('yyyy-MM-dd').format(_startDate!);
+      String end = DateFormat('yyyy-MM-dd').format(_endDate!);
+      url += "?start_date=$start&end_date=$end";
     }
 
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
-        setState(() {
-          _dataAnalitik = jsonDecode(response.body);
-        });
+        final data = jsonDecode(response.body);
+        if (data['status'] == 'sukses') {
+          setState(() {
+            _distribusi = Map<String, int>.from(data['distribusi']);
+            _tren = data['tren'];
+          });
+        }
       }
     } catch (e) {
-      debugPrint("Error fetching analitik: $e");
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
     } finally {
       setState(() {
         _isLoading = false;
@@ -52,365 +88,295 @@ class _AnalitikPageState extends State<AnalitikPage> {
     }
   }
 
-  Future<void> _pilihTanggal(bool isStart) async {
-    DateTime initialDate = DateTime.now();
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: initialDate,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2100),
-    );
-    if (picked != null) {
-      setState(() {
-        if (isStart)
-          _startDate = picked;
-        else
-          _endDate = picked;
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    // Mengekstrak data bar
-    final barData =
-        _dataAnalitik?['bar'] ?? {'Positif': 0, 'Netral': 0, 'Negatif': 0};
-    double valPositif = (barData['Positif'] ?? 0).toDouble();
-    double valNetral = (barData['Netral'] ?? 0).toDouble();
-    double valNegatif = (barData['Negatif'] ?? 0).toDouble();
-    bool isBarEmpty = valPositif == 0 && valNetral == 0 && valNegatif == 0;
-
-    // Mengekstrak data garis (line)
-    final List lineData = _dataAnalitik?['line'] ?? [];
-    bool isLineEmpty = lineData.isEmpty;
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // --- FORM RENTANG TANGGAL ---
-          _buildDateField("Dari tanggal", _startDate, true),
-          const SizedBox(height: 16),
-          _buildDateField("Sampai tanggal", _endDate, false),
-          const SizedBox(height: 12),
-          Align(
-            alignment: Alignment.centerRight,
-            child: ElevatedButton(
-              onPressed: _isLoading ? null : _fetchAnalitik,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.grey.shade400,
-                foregroundColor: Colors.black,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                  side: const BorderSide(color: Colors.black),
-                ),
-              ),
-              child: _isLoading
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text("Terapkan"),
-            ),
-          ),
-          const SizedBox(height: 32),
-
-          // --- GRAFIK TREN SENTIMEN ---
-          isLineEmpty
-              ? _buildEmptyChartWrapper("Tren Sentimen", "Rentang Waktu")
-              : _buildLineChart(lineData),
-
-          const SizedBox(height: 40),
-
-          // --- GRAFIK DISTRIBUSI KATEGORI ---
-          isBarEmpty
-              ? _buildEmptyChartWrapper(
-                  "Distribusi per Kategori",
-                  "Positif      Netral      Negatif",
-                )
-              : _buildBarChart(valPositif, valNetral, valNegatif),
-
-          const SizedBox(height: 40), // Jarak aman bawah
-        ],
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: const Text('Analitik', style: TextStyle(color: Colors.black)),
+        backgroundColor: Colors.white,
+        elevation: 1,
+        centerTitle: true,
       ),
-    );
-  }
-
-  // Widget Input Tanggal
-  Widget _buildDateField(String hint, DateTime? dateValue, bool isStart) {
-    return InkWell(
-      onTap: () => _pilihTanggal(isStart),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.black, width: 1.5),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              dateValue != null
-                  ? DateFormat('dd/MM/yyyy').format(dateValue)
-                  : hint,
-              style: TextStyle(
-                fontSize: 16,
-                color: dateValue != null ? Colors.black : Colors.grey.shade600,
+            // Kontrol Tanggal (Sesuai Referensi image_f4cd00.png)
+            Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.black),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: ListTile(
+                title: Text(
+                  _startDate == null
+                      ? 'Dari tanggal'
+                      : DateFormat('dd/MM/yyyy').format(_startDate!),
+                ),
+                trailing: const Icon(Icons.calendar_today),
+                onTap: () => _pilihTanggal(context, true),
               ),
             ),
-            const Icon(Icons.calendar_month, color: Colors.black),
+            const SizedBox(height: 10),
+            Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.black),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: ListTile(
+                title: Text(
+                  _endDate == null
+                      ? 'Sampai tanggal'
+                      : DateFormat('dd/MM/yyyy').format(_endDate!),
+                ),
+                trailing: const Icon(Icons.calendar_today),
+                onTap: () => _pilihTanggal(context, false),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Align(
+              alignment: Alignment.centerRight,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.grey.shade400,
+                  foregroundColor: Colors.black,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+                onPressed: _fetchAnalitik,
+                child: const Text('Terapkan'),
+              ),
+            ),
+            const SizedBox(height: 30),
+
+            // Indikator Loading
+            if (_isLoading)
+              const Center(child: CircularProgressIndicator())
+            else ...[
+              // Grafik Tren Sentimen (Line Chart)
+              const Text(
+                'Tren Sentimen',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(height: 250, child: LineChart(_buildLineChartData())),
+              const SizedBox(height: 40),
+
+              // Grafik Distribusi per Kategori (Bar Chart)
+              const Text(
+                'Distribusi per Kategori',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(height: 200, child: BarChart(_buildBarChartData())),
+            ],
           ],
         ),
       ),
     );
   }
 
-  // Widget Bingkai Grafik Kosong (Sesuai Wireframe)
-  Widget _buildEmptyChartWrapper(String title, String xLabel) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            const RotatedBox(
-              quarterTurns: 3,
-              child: Text("Jumlah Berita", style: TextStyle(fontSize: 12)),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Container(
-                height: 200,
-                decoration: const BoxDecoration(
-                  border: Border(
-                    left: BorderSide(color: Colors.black),
-                    bottom: BorderSide(color: Colors.black),
-                  ),
-                ),
-                child: const Center(
-                  child: Text("Belum ada data", style: TextStyle(fontSize: 16)),
-                ),
-              ),
-            ),
-          ],
-        ),
-        Padding(
-          padding: const EdgeInsets.only(left: 30, top: 8),
-          child: Center(
-            child: Text(xLabel, style: const TextStyle(fontSize: 12)),
-          ),
-        ),
-      ],
-    );
-  }
+  // --- Konfigurasi Line Chart (Tren Sentimen) ---
+  LineChartData _buildLineChartData() {
+    List<FlSpot> positifSpots = [];
+    List<FlSpot> netralSpots = [];
+    List<FlSpot> negatifSpots = [];
 
-  // Widget Grafik Batang (Fl_Chart)
-  Widget _buildBarChart(double pos, double net, double neg) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          "Distribusi per Kategori",
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            const RotatedBox(
-              quarterTurns: 3,
-              child: Text("Jumlah Berita", style: TextStyle(fontSize: 12)),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: SizedBox(
-                height: 200,
-                child: BarChart(
-                  BarChartData(
-                    alignment: BarChartAlignment.spaceAround,
-                    maxY:
-                        (pos > net
-                            ? (pos > neg ? pos : neg)
-                            : (net > neg ? net : neg)) +
-                        2, // Dinamis
-                    barTouchData: BarTouchData(enabled: false),
-                    titlesData: FlTitlesData(
-                      show: true,
-                      bottomTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: true,
-                          getTitlesWidget: (value, meta) {
-                            switch (value.toInt()) {
-                              case 0:
-                                return const Text(
-                                  'Positif',
-                                  style: TextStyle(fontSize: 12),
-                                );
-                              case 1:
-                                return const Text(
-                                  'Netral',
-                                  style: TextStyle(fontSize: 12),
-                                );
-                              case 2:
-                                return const Text(
-                                  'Negatif',
-                                  style: TextStyle(fontSize: 12),
-                                );
-                              default:
-                                return const Text('');
-                            }
-                          },
-                        ),
-                      ),
-                      leftTitles: const AxisTitles(
-                        sideTitles: SideTitles(showTitles: false),
-                      ),
-                      topTitles: const AxisTitles(
-                        sideTitles: SideTitles(showTitles: false),
-                      ),
-                      rightTitles: const AxisTitles(
-                        sideTitles: SideTitles(showTitles: false),
-                      ),
-                    ),
-                    borderData: FlBorderData(
-                      show: true,
-                      border: const Border(
-                        left: BorderSide(color: Colors.black),
-                        bottom: BorderSide(color: Colors.black),
-                      ),
-                    ),
-                    gridData: const FlGridData(show: false),
-                    barGroups: [
-                      BarChartGroupData(
-                        x: 0,
-                        barRods: [
-                          BarChartRodData(
-                            toY: pos,
-                            color: Colors.green,
-                            width: 30,
-                            borderRadius: BorderRadius.zero,
-                          ),
-                        ],
-                      ),
-                      BarChartGroupData(
-                        x: 1,
-                        barRods: [
-                          BarChartRodData(
-                            toY: net,
-                            color: Colors.yellow,
-                            width: 30,
-                            borderRadius: BorderRadius.zero,
-                          ),
-                        ],
-                      ),
-                      BarChartGroupData(
-                        x: 2,
-                        barRods: [
-                          BarChartRodData(
-                            toY: neg,
-                            color: Colors.red,
-                            width: 30,
-                            borderRadius: BorderRadius.zero,
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  // Widget Grafik Garis (Fl_Chart)
-  Widget _buildLineChart(List lineData) {
-    List<FlSpot> posSpots = [];
-    List<FlSpot> netSpots = [];
-    List<FlSpot> negSpots = [];
-
-    for (int i = 0; i < lineData.length; i++) {
-      double pos = (lineData[i]['Positif'] ?? 0).toDouble();
-      double net = (lineData[i]['Netral'] ?? 0).toDouble();
-      double neg = (lineData[i]['Negatif'] ?? 0).toDouble();
-      posSpots.add(FlSpot(i.toDouble(), pos));
-      netSpots.add(FlSpot(i.toDouble(), net));
-      negSpots.add(FlSpot(i.toDouble(), neg));
+    for (int i = 0; i < _tren.length; i++) {
+      positifSpots.add(FlSpot(i.toDouble(), _tren[i]['positif'].toDouble()));
+      netralSpots.add(FlSpot(i.toDouble(), _tren[i]['netral'].toDouble()));
+      negatifSpots.add(FlSpot(i.toDouble(), _tren[i]['negatif'].toDouble()));
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          "Tren Sentimen",
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            const RotatedBox(
-              quarterTurns: 3,
-              child: Text("Jumlah Berita", style: TextStyle(fontSize: 12)),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: SizedBox(
-                height: 200,
-                child: LineChart(
-                  LineChartData(
-                    lineTouchData: const LineTouchData(enabled: false),
-                    gridData: const FlGridData(show: false),
-                    titlesData: const FlTitlesData(
-                      show: false,
-                    ), // Sembunyikan label bawaan untuk meniru wireframe
-                    borderData: FlBorderData(
-                      show: true,
-                      border: const Border(
-                        left: BorderSide(color: Colors.black),
-                        bottom: BorderSide(color: Colors.black),
-                      ),
-                    ),
-                    lineBarsData: [
-                      LineChartBarData(
-                        spots: posSpots,
-                        isCurved: false,
-                        color: Colors.green,
-                        barWidth: 2,
-                        dotData: const FlDotData(show: false),
-                      ),
-                      LineChartBarData(
-                        spots: netSpots,
-                        isCurved: false,
-                        color: Colors.yellow,
-                        barWidth: 2,
-                        dotData: const FlDotData(show: false),
-                      ),
-                      LineChartBarData(
-                        spots: negSpots,
-                        isCurved: false,
-                        color: Colors.red,
-                        barWidth: 2,
-                        dotData: const FlDotData(show: false),
-                      ),
-                    ],
+    return LineChartData(
+      minY: 0,
+      gridData: FlGridData(
+        show: true,
+        drawVerticalLine: false,
+        getDrawingHorizontalLine: (value) =>
+            FlLine(color: Colors.grey.withOpacity(0.3), strokeWidth: 1),
+      ),
+      titlesData: FlTitlesData(
+        bottomTitles: AxisTitles(
+          axisNameWidget: const Text(
+            'Rentang Waktu',
+            style: TextStyle(fontSize: 12),
+          ),
+          sideTitles: SideTitles(
+            showTitles: true,
+            interval: 1,
+            getTitlesWidget: (value, meta) {
+              if (value.toInt() >= 0 && value.toInt() < _tren.length) {
+                // Tampilkan label tanggal (misal: '15/10')
+                String rawDate = _tren[value.toInt()]['tanggal'];
+                DateTime date = DateTime.parse(rawDate);
+                return Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Text(
+                    DateFormat('dd/MM').format(date),
+                    style: const TextStyle(fontSize: 10),
                   ),
-                ),
-              ),
+                );
+              }
+              return const Text('');
+            },
+          ),
+        ),
+        leftTitles: AxisTitles(
+          axisNameWidget: const Text(
+            'Jumlah Berita',
+            style: TextStyle(fontSize: 12),
+          ),
+          sideTitles: SideTitles(
+            showTitles: true,
+            interval: 1,
+            reservedSize: 40,
+            getTitlesWidget: (value, meta) {
+              if (value % 1 == 0)
+                return Text(
+                  value.toInt().toString(),
+                  style: const TextStyle(fontSize: 10),
+                );
+              return const Text('');
+            },
+          ),
+        ),
+        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        rightTitles: const AxisTitles(
+          sideTitles: SideTitles(showTitles: false),
+        ),
+      ),
+      borderData: FlBorderData(
+        show: true,
+        border: const Border(
+          bottom: BorderSide(color: Colors.black),
+          left: BorderSide(color: Colors.black),
+        ),
+      ),
+      lineBarsData: [
+        LineChartBarData(
+          spots: positifSpots,
+          isCurved: true,
+          preventCurveOverShooting: true,
+          color: Colors.green,
+          barWidth: 3,
+          dotData: const FlDotData(show: true),
+        ),
+        LineChartBarData(
+          spots: netralSpots,
+          isCurved: true,
+          preventCurveOverShooting: true,
+          color: Colors.amber,
+          barWidth: 3,
+          dotData: const FlDotData(show: true),
+        ),
+        LineChartBarData(
+          spots: negatifSpots,
+          isCurved: true,
+          preventCurveOverShooting: true,
+          color: Colors.red,
+          barWidth: 3,
+          dotData: const FlDotData(show: true),
+        ),
+      ],
+    );
+  }
+
+  // --- Konfigurasi Bar Chart (Distribusi per Kategori) ---
+  BarChartData _buildBarChartData() {
+    return BarChartData(
+      alignment: BarChartAlignment.spaceAround,
+      gridData: FlGridData(
+        show: true,
+        drawVerticalLine: false,
+        getDrawingHorizontalLine: (value) =>
+            FlLine(color: Colors.grey.withOpacity(0.3), strokeWidth: 1),
+      ),
+      titlesData: FlTitlesData(
+        bottomTitles: AxisTitles(
+          sideTitles: SideTitles(
+            showTitles: true,
+            getTitlesWidget: (value, meta) {
+              switch (value.toInt()) {
+                case 0:
+                  return const Text('Positif', style: TextStyle(fontSize: 12));
+                case 1:
+                  return const Text('Netral', style: TextStyle(fontSize: 12));
+                case 2:
+                  return const Text('Negatif', style: TextStyle(fontSize: 12));
+                default:
+                  return const Text('');
+              }
+            },
+          ),
+        ),
+        leftTitles: AxisTitles(
+          axisNameWidget: const Text(
+            'Jumlah Berita',
+            style: TextStyle(fontSize: 12),
+          ),
+          sideTitles: SideTitles(
+            showTitles: true,
+            interval: 1,
+            reservedSize: 40,
+            getTitlesWidget: (value, meta) {
+              if (value % 1 == 0)
+                return Text(
+                  value.toInt().toString(),
+                  style: const TextStyle(fontSize: 10),
+                );
+              return const Text('');
+            },
+          ),
+        ),
+        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        rightTitles: const AxisTitles(
+          sideTitles: SideTitles(showTitles: false),
+        ),
+      ),
+      borderData: FlBorderData(
+        show: true,
+        border: const Border(
+          bottom: BorderSide(color: Colors.black),
+          left: BorderSide(color: Colors.black),
+        ),
+      ),
+      barGroups: [
+        BarChartGroupData(
+          x: 0,
+          barRods: [
+            BarChartRodData(
+              toY: _distribusi['positif']!.toDouble(),
+              color: Colors.green,
+              width: 25,
+              borderRadius: BorderRadius.zero,
             ),
           ],
         ),
-        const Padding(
-          padding: EdgeInsets.only(left: 30, top: 8),
-          child: Center(
-            child: Text("Rentang Waktu", style: TextStyle(fontSize: 12)),
-          ),
+        BarChartGroupData(
+          x: 1,
+          barRods: [
+            BarChartRodData(
+              toY: _distribusi['netral']!.toDouble(),
+              color: Colors.amber,
+              width: 25,
+              borderRadius: BorderRadius.zero,
+            ),
+          ],
+        ),
+        BarChartGroupData(
+          x: 2,
+          barRods: [
+            BarChartRodData(
+              toY: _distribusi['negatif']!.toDouble(),
+              color: Colors.red,
+              width: 25,
+              borderRadius: BorderRadius.zero,
+            ),
+          ],
         ),
       ],
     );
