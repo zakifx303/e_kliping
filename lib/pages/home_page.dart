@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'tambah_kliping.dart';
 import 'analitik_page.dart';
+import 'cari_internet_page.dart';
 import 'search_page.dart';
 import 'settings_page.dart';
 import 'detail_page.dart';
@@ -54,6 +55,10 @@ class _HomePageState extends State<HomePage> {
               );
               return;
             }
+            if (index == 1) {
+              _tampilkanPilihanTambah(context);
+              return;
+            }
             setState(() {
               _selectedIndex = index;
             });
@@ -77,6 +82,65 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
       ),
+    );
+  }
+
+  void _tampilkanPilihanTambah(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          title: const Text(
+            'Pilih salah satu\ndari kedua opsi berikut',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 16),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  minimumSize: const Size(double.infinity, 45),
+                ),
+                onPressed: () {
+                  Navigator.pop(dialogContext);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const CariInternetPage(),
+                    ),
+                  );
+                },
+                child: const Text(
+                  'Cari lewat Internet',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+              const SizedBox(height: 15),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  minimumSize: const Size(double.infinity, 45),
+                ),
+                onPressed: () {
+                  Navigator.pop(dialogContext);
+                  setState(() {
+                    _selectedIndex = 1;
+                  });
+                },
+                child: const Text(
+                  'Tambah Secara Manual',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
