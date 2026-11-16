@@ -54,12 +54,15 @@ class _CariInternetPageState extends State<CariInternetPage>
       _searchResults = [];
     });
 
-    // GANTI IP INI DENGAN IP LAPTOP ANDA (contoh: 192.168.18.56)
-    String url =
-        "http://192.168.100.106/api_ekliping/cari_rss_google.php?keyword=$keyword";
+    final url = Uri(
+      scheme: 'http',
+      host: '192.168.100.106',
+      path: '/api_ekliping/cari_rss_google.php',
+      queryParameters: {'keyword': keyword},
+    );
 
     try {
-      final response = await http.get(Uri.parse(url));
+      final response = await http.get(url);
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         if (data['status'] == 'sukses') {
@@ -79,7 +82,7 @@ class _CariInternetPageState extends State<CariInternetPage>
     }
   }
 
-  Future<void> _simpanKeDatabase(Map<String, dynamic> berita) async {
+  Future<void> _simpanKeDatabase(Map<String, dynamic> berita, int index) async {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Menyimpan berita ke Beranda...'),
@@ -94,7 +97,12 @@ class _CariInternetPageState extends State<CariInternetPage>
       final response = await http.post(
         Uri.parse(urlSimpan),
         headers: const {'Content-Type': 'application/json'},
-        body: jsonEncode(berita),
+        body: jsonEncode({
+          'judul': berita['judul'],
+          'sumber': berita['sumber'],
+          'deskripsi': berita['deskripsi'],
+          'tanggal': berita['tanggal'],
+        }),
       );
       print("ISI RESPONSE SERVER: ${response.body}"); // Tambahkan baris ini
 
@@ -103,6 +111,13 @@ class _CariInternetPageState extends State<CariInternetPage>
 
       final pesan = data['pesan']?.toString() ?? 'Tidak ada pesan dari server.';
       final berhasil = response.statusCode == 200 && data['status'] == 'sukses';
+      if (berhasil &&
+          index < _searchResults.length &&
+          identical(_searchResults[index], berita)) {
+        setState(() {
+          _searchResults.removeAt(index);
+        });
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(pesan),
@@ -247,7 +262,7 @@ class _CariInternetPageState extends State<CariInternetPage>
             padding: const EdgeInsets.all(15),
             itemBuilder: (context, index) {
               final berita = _searchResults[index];
-              return _buildKartuHasil(berita);
+              return _buildKartuHasil(berita, index);
             },
           ),
         ),
@@ -255,7 +270,7 @@ class _CariInternetPageState extends State<CariInternetPage>
     );
   }
 
-  Widget _buildKartuHasil(Map<String, dynamic> berita) {
+  Widget _buildKartuHasil(Map<String, dynamic> berita, int index) {
     final tanggal = berita['tanggal']?.toString() ?? '';
     final parsedTanggal = DateTime.tryParse(tanggal);
 
@@ -343,7 +358,7 @@ class _CariInternetPageState extends State<CariInternetPage>
             padding: const EdgeInsets.only(right: 15),
             child: InkWell(
               onTap: () {
-                _simpanKeDatabase(berita);
+                _simpanKeDatabase(berita, index);
               },
               child: Container(
                 width: 35,
