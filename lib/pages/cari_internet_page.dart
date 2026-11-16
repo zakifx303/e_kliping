@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 
 class CariInternetPage extends StatefulWidget {
   const CariInternetPage({super.key});
@@ -145,6 +146,13 @@ class _CariInternetPageState extends State<CariInternetPage>
               decoration: BoxDecoration(
                 color: Colors.grey[200],
                 borderRadius: BorderRadius.circular(30),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.5),
+                    blurRadius: 4,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
               ),
               child: Row(
                 children: [
@@ -248,6 +256,9 @@ class _CariInternetPageState extends State<CariInternetPage>
   }
 
   Widget _buildKartuHasil(Map<String, dynamic> berita) {
+    final tanggal = berita['tanggal']?.toString() ?? '';
+    final parsedTanggal = DateTime.tryParse(tanggal);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 15),
       height: 120, // Memaksa tinggi kartu
@@ -313,7 +324,9 @@ class _CariInternetPageState extends State<CariInternetPage>
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        berita['tanggal'] ?? '',
+                        parsedTanggal == null
+                            ? tanggal
+                            : DateFormat('dd/MM/yyyy').format(parsedTanggal),
                         style: const TextStyle(fontSize: 9),
                       ),
                       const Text("Kategori : -", style: TextStyle(fontSize: 9)),

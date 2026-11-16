@@ -174,14 +174,17 @@ class _SearchPageState extends State<SearchPage> {
                               ),
                               child: InkWell(
                                 borderRadius: BorderRadius.circular(10),
-                                onTap: () {
-                                  Navigator.push(
+                                onTap: () async {
+                                  final result = await Navigator.push(
                                     context,
                                     MaterialPageRoute(
                                       builder: (context) =>
                                           DetailPage(data: item),
                                     ),
                                   );
+                                  if (result == true && mounted) {
+                                    setState(() {});
+                                  }
                                 },
                                 child: ListTile(
                                   contentPadding: const EdgeInsets.all(8),

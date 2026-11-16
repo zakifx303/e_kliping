@@ -1,7 +1,7 @@
 // Lokasi: lib/pages/detail_page.dart
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'edit_kliping_page.dart';
 import '../session.dart';
 
@@ -14,11 +14,73 @@ class DetailPage extends StatefulWidget {
 }
 
 class _DetailPageState extends State<DetailPage> {
-  bool _isLoading = false;
-
   Future<void> _hapusKliping() async {
-    // [Logika Hapus Tetap Sama Seperti Sebelumnya]
-    // Pastikan Anda menggunakan konfirmasi dialog dan HTTP request ke hapus_kliping.php
+    final id = widget.data['id']?.toString() ?? '';
+    if (id.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ID kliping tidak ditemukan.')),
+      );
+      return;
+    }
+
+    final konfirmasi = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Hapus kliping?'),
+        content: const Text('Kliping ini akan dihapus secara permanen.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
+    );
+    if (konfirmasi != true || !mounted) return;
+
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+    var loadingShown = true;
+
+    try {
+      final response = await http.post(
+        Uri.parse('http://192.168.100.106/api_ekliping/hapus_kliping.php'),
+        body: {'id': id},
+      );
+      if (response.statusCode != 200) {
+        throw StateError('Server mengembalikan HTTP ${response.statusCode}.');
+      }
+
+      final result = jsonDecode(response.body) as Map<String, dynamic>;
+      if (result['status'] != 'sukses') {
+        throw StateError(
+          result['pesan']?.toString() ?? 'Server gagal menghapus kliping.',
+        );
+      }
+
+      if (!mounted) return;
+      Navigator.of(context, rootNavigator: true).pop();
+      loadingShown = false;
+      Navigator.of(context).pop(true);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Gagal menghapus kliping: $e')));
+      }
+    } finally {
+      if (loadingShown && mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+    }
   }
 
   @override
@@ -221,7 +283,7 @@ class _DetailPageState extends State<DetailPage> {
                           ),
                         );
 
-                        if (updatedData != null) {
+                        if (updatedData != null && context.mounted) {
                           Navigator.pop(context, true);
                         }
                       },
@@ -249,7 +311,7 @@ class _DetailPageState extends State<DetailPage> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      onPressed: _isLoading ? null : _hapusKliping,
+                      onPressed: _hapusKliping,
                     ),
                   ),
                 ],

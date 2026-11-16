@@ -14,8 +14,6 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  bool _isDarkMode = false;
-
   // Fungsi Cek Admin
   void _cekAdminDanArahkan() {
     if (UserSession.currentUsername == 'admin') {
@@ -176,34 +174,7 @@ class _SettingsPageState extends State<SettingsPage> {
         padding: const EdgeInsets.all(32.0),
         child: Column(
           children: [
-            // 1. Mode Gelap
-            Row(
-              children: [
-                const Icon(Icons.brightness_6, color: Colors.amber, size: 36),
-                const SizedBox(width: 16),
-                const Expanded(
-                  child: Text(
-                    'MODE GELAP',
-                    style: TextStyle(
-                      fontSize: 18,
-                      decoration: TextDecoration.underline,
-                    ),
-                  ),
-                ),
-                Switch(
-                  value: _isDarkMode,
-                  onChanged: (val) {
-                    setState(() {
-                      _isDarkMode = val;
-                    });
-                  },
-                  activeColor: Colors.black,
-                ),
-              ],
-            ),
-            const SizedBox(height: 32),
-
-            // 2. Tambah User
+            // Tambah User
             InkWell(
               onTap: _cekAdminDanArahkan,
               child: const Row(
@@ -216,7 +187,7 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             const SizedBox(height: 32),
 
-            // 3. Ubah Password
+            // Ubah Password
             InkWell(
               onTap: () {
                 if (UserSession.currentUsername == 'guest') {
