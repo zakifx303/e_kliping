@@ -1,7 +1,6 @@
-# flutter_application_1
+# E Kliping & Monitoring Berita
 
-A new Flutter project.
-
+Projek Aplikasi Android berbasis Flutter SDK 
 ## Getting Started
 
 This project is a starting point for a Flutter application.
