@@ -19,18 +19,18 @@ class _TambahKlipingPageState extends State<TambahKlipingPage> {
   final TextEditingController _sumberController = TextEditingController();
   final TextEditingController _deskripsiController = TextEditingController();
 
-  String? _selectedKategori;
+  String _selectedKategori = 'Otomatis';
   String _selectedSentimen = 'Otomatis';
   File? _image;
   bool _isLoading = false;
 
   // Daftar Pilihan Dropdown
   final List<String> _kategoriList = [
+    'Otomatis',
     'Berita Agama',
     'Pendidikan',
     'Umum',
     'Prestasi',
-    'lainnya',
   ];
   final List<String> _sentimenList = [
     'Otomatis',
@@ -57,7 +57,7 @@ class _TambahKlipingPageState extends State<TambahKlipingPage> {
       _judulController.clear();
       _sumberController.clear();
       _deskripsiController.clear();
-      _selectedKategori = null;
+      _selectedKategori = 'Otomatis';
       _selectedSentimen = 'Otomatis';
       _image = null;
     });
@@ -87,7 +87,7 @@ class _TambahKlipingPageState extends State<TambahKlipingPage> {
     request.fields['username'] = UserSession.currentUsername;
     request.fields['judul'] = _judulController.text;
     request.fields['sumber'] = _sumberController.text;
-    request.fields['kategori'] = _selectedKategori ?? 'Umum';
+    request.fields['kategori'] = _selectedKategori;
     request.fields['sentimen'] = _selectedSentimen;
     request.fields['deskripsi'] = _deskripsiController.text;
 
@@ -109,7 +109,8 @@ class _TambahKlipingPageState extends State<TambahKlipingPage> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
-                  "Tersimpan! Sentimen terdeteksi : ${hasil['sentimen_terdeteksi'] ?? '-'}",
+                  "Tersimpan! Kategori: ${hasil['kategori_terdeteksi'] ?? '-'}, "
+                  "Sentimen: ${hasil['sentimen_terdeteksi'] ?? '-'}",
                 ),
                 backgroundColor: Colors.green,
               ),
@@ -163,7 +164,7 @@ class _TambahKlipingPageState extends State<TambahKlipingPage> {
               hint: 'Pilih kategori',
               value: _selectedKategori,
               items: _kategoriList,
-              onChanged: (val) => setState(() => _selectedKategori = val),
+              onChanged: (val) => setState(() => _selectedKategori = val ?? 'Otomatis'),
             ),
             const SizedBox(height: 16),
 
