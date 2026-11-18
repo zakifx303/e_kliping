@@ -6,7 +6,9 @@ import 'package:http/http.dart' as http;
 import '../session.dart';
 
 class TambahKlipingPage extends StatefulWidget {
-  const TambahKlipingPage({super.key});
+  final VoidCallback? onSaved;
+
+  const TambahKlipingPage({super.key, this.onSaved});
 
   @override
   State<TambahKlipingPage> createState() => _TambahKlipingPageState();
@@ -18,7 +20,7 @@ class _TambahKlipingPageState extends State<TambahKlipingPage> {
   final TextEditingController _deskripsiController = TextEditingController();
 
   String? _selectedKategori;
-  String? _selectedSentimen; // Variabel penampung sentimen
+  String _selectedSentimen = 'Otomatis';
   File? _image;
   bool _isLoading = false;
 
@@ -31,7 +33,12 @@ class _TambahKlipingPageState extends State<TambahKlipingPage> {
     'Prestasi',
     'lainnya',
   ];
-  final List<String> _sentimenList = ['Positif', 'Netral', 'Negatif'];
+  final List<String> _sentimenList = [
+    'Otomatis',
+    'Positif',
+    'Netral',
+    'Negatif',
+  ];
 
   // Fungsi Pemilih Gambar
   Future<void> _pickImage() async {
@@ -52,7 +59,7 @@ class _TambahKlipingPageState extends State<TambahKlipingPage> {
       _sumberController.clear();
       _deskripsiController.clear();
       _selectedKategori = null;
-      _selectedSentimen = null;
+      _selectedSentimen = 'Otomatis';
       _image = null;
     });
   }
@@ -82,8 +89,7 @@ class _TambahKlipingPageState extends State<TambahKlipingPage> {
     request.fields['judul'] = _judulController.text;
     request.fields['sumber'] = _sumberController.text;
     request.fields['kategori'] = _selectedKategori ?? 'Umum';
-    request.fields['sentimen'] =
-        _selectedSentimen ?? 'Netral'; // Pengiriman Data Sentimen
+    request.fields['sentimen'] = _selectedSentimen;
     request.fields['deskripsi'] = _deskripsiController.text;
 
     if (_image != null) {
@@ -95,31 +101,41 @@ class _TambahKlipingPageState extends State<TambahKlipingPage> {
     try {
       var response = await request.send();
       if (response.statusCode == 200) {
-        var responseData = await response.stream.bytesToString();
-        var data = jsonDecode(responseData);
+        final responseString = await response.stream.bytesToString();
+        debugPrint("RESPON MENTAH DARI PHP: $responseString");
+        final hasil = jsonDecode(responseString);
 
-        if (data['status'] == 'sukses') {
-          if (context.mounted) {
+        if (hasil['status'] == 'sukses') {
+          if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(data['pesan']),
+                content: Text(
+                  "Tersimpan! Sentimen terdeteksi : ${hasil['sentimen_terdeteksi'] ?? '-'}",
+                ),
                 backgroundColor: Colors.green,
               ),
             );
-            _batal(); // Kosongkan form setelah sukses
+            final onSaved = widget.onSaved;
+            if (onSaved != null) {
+              onSaved();
+            } else {
+              _batal();
+            }
           }
         }
       }
     } catch (e) {
-      if (context.mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
         );
       }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -157,7 +173,8 @@ class _TambahKlipingPageState extends State<TambahKlipingPage> {
               hint: 'Pilih sentimen',
               value: _selectedSentimen,
               items: _sentimenList,
-              onChanged: (val) => setState(() => _selectedSentimen = val),
+              onChanged: (val) =>
+                  setState(() => _selectedSentimen = val ?? 'Otomatis'),
             ),
             const SizedBox(height: 16),
 
@@ -271,7 +288,7 @@ class _TambahKlipingPageState extends State<TambahKlipingPage> {
         ),
       ),
       hint: Text(hint, style: const TextStyle(color: Colors.grey)),
-      value: value,
+      initialValue: value,
       icon: Container(
         padding: const EdgeInsets.all(4),
         decoration: BoxDecoration(

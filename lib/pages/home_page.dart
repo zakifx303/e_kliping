@@ -19,12 +19,23 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
+  late final List<Widget> _pages;
 
-  final List<Widget> _pages = [
-    const HomeContent(),
-    const TambahKlipingPage(),
-    const AnalitikPage(),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _pages = [
+      const HomeContent(),
+      TambahKlipingPage(onSaved: _onKlipingSaved),
+      const AnalitikPage(),
+    ];
+  }
+
+  void _onKlipingSaved() {
+    setState(() {
+      _selectedIndex = 0;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
