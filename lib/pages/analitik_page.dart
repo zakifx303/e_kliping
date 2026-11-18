@@ -167,7 +167,7 @@ class _AnalitikPageState extends State<AnalitikPage> {
 
               // Grafik Distribusi per Kategori (Bar Chart)
               const Text(
-                'Distribusi per Kategori',
+                'Distribusi per Sentimen',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 20),

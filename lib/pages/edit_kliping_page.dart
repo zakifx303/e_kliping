@@ -271,7 +271,7 @@ class _EditKlipingPageState extends State<EditKlipingPage> {
                     'kategori',
                     'Ubah Kategori',
                     true,
-                    ['Agama', 'Pendidikan', 'Umum', 'Haji', 'Lainnya'],
+                    ['Berita Agama', 'Pendidikan', 'Umum','Prestasi','Lainnya'],
                     false,
                   ),
                   child: Container(

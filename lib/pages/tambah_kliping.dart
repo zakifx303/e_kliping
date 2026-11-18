@@ -28,7 +28,6 @@ class _TambahKlipingPageState extends State<TambahKlipingPage> {
   final List<String> _kategoriList = [
     'Berita Agama',
     'Pendidikan',
-    'Haji & Umrah',
     'Umum',
     'Prestasi',
     'lainnya',
