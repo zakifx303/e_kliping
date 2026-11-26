@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import '../session.dart';
+import 'dart:async';
 
 class TambahKlipingPage extends StatefulWidget {
   final VoidCallback? onSaved;
@@ -98,38 +99,52 @@ class _TambahKlipingPageState extends State<TambahKlipingPage> {
     }
 
     try {
-      var response = await request.send();
-      if (response.statusCode == 200) {
-        final responseString = await response.stream.bytesToString();
-        debugPrint("RESPON MENTAH DARI PHP: $responseString");
-        final hasil = jsonDecode(responseString);
+      // Tunggu maksimal 20 detik. Kalau server tidak menjawab, dianggap gagal.
+      var response = await request.send().timeout(const Duration(seconds: 20));
+      final responseString = await response.stream.bytesToString();
+      debugPrint("RESPON MENTAH DARI PHP: $responseString");
 
-        if (hasil['status'] == 'sukses') {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  "Tersimpan! Kategori: ${hasil['kategori_terdeteksi'] ?? '-'}, "
-                  "Sentimen: ${hasil['sentimen_terdeteksi'] ?? '-'}",
-                ),
-                backgroundColor: Colors.green,
-              ),
-            );
-            final onSaved = widget.onSaved;
-            if (onSaved != null) {
-              onSaved();
-            } else {
-              _batal();
-            }
-          }
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+      // Kasus 1: server membalas dengan kode error (404, 500, dll.)
+      if (response.statusCode != 200) {
+        _tampilkanPesan(
+          'Server bermasalah (kode ${response.statusCode}). Coba lagi nanti.',
         );
+        return;
       }
+
+      final hasil = jsonDecode(responseString);
+
+      if (hasil['status'] == 'sukses') {
+        // Berhasil
+        _tampilkanPesan(
+          "Tersimpan! Kategori: ${hasil['kategori_terdeteksi'] ?? '-'}, "
+          "Sentimen: ${hasil['sentimen_terdeteksi'] ?? '-'}",
+          sukses: true,
+        );
+        if (!mounted) return;
+        final onSaved = widget.onSaved;
+        if (onSaved != null) {
+          onSaved();
+        } else {
+          _batal();
+        }
+      } else {
+        // Kasus 2: PHP membalas "error". Detail teknis hanya dicatat di konsol.
+        debugPrint("PHP MELAPORKAN ERROR: ${hasil['pesan']}");
+        _tampilkanPesan('Gagal menyimpan kliping. Silakan coba lagi.');
+      }
+    } on TimeoutException {
+      // Kasus 3: server terlalu lama menjawab
+      _tampilkanPesan('Server tidak merespons. Periksa koneksi lalu coba lagi.');
+    } on FormatException {
+      // Balasan server bukan JSON yang benar
+      _tampilkanPesan('Balasan server tidak dapat dibaca. Hubungi pengelola app.');
+    } catch (e) {
+      // Kasus lain, biasanya server mati atau tidak ada koneksi
+      debugPrint("ERROR SIMPAN: $e");
+      _tampilkanPesan(
+        'Tidak dapat terhubung ke server. Periksa Wi-Fi dan pastikan server menyala.',
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -137,6 +152,17 @@ class _TambahKlipingPageState extends State<TambahKlipingPage> {
         });
       }
     }
+  }
+
+  // Fungsi bantu: menampilkan pesan di bagian bawah layar
+  void _tampilkanPesan(String pesan, {bool sukses = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(pesan),
+        backgroundColor: sukses ? Colors.green : Colors.red,
+      ),
+    );
   }
 
   @override

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import '../session.dart';
 
 class CariInternetPage extends StatefulWidget {
   const CariInternetPage({super.key});
@@ -102,6 +103,7 @@ class _CariInternetPageState extends State<CariInternetPage>
           'sumber': berita['sumber'],
           'deskripsi': berita['deskripsi'],
           'tanggal': berita['tanggal'],
+          'username': UserSession.currentUsername,
         }),
       );
       print("ISI RESPONSE SERVER: ${response.body}"); // Tambahkan baris ini
